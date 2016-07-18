@@ -1,10 +1,17 @@
 require 'net/https'
 require 'json'
 
+# https://console.cloud.google.com/apis/credentials
 API_KEY = 'xxx'
-API_URL = "https://vision.googleapis.com/v1/images:annotate?key=#{API_KEY}"
 
-request_body = {
+# https://vision.googleapis.com/v1/images:annotate?key=#{API_KEY}
+API_URL = "https://vision.googleapis.com/v1/images:annotate"
+uri = URI.parse(API_URL)
+uri.query = "key=#{API_KEY}"
+
+request = Net::HTTP::Post.new(uri.request_uri)
+request.content_type = "application/json"
+request.body = {
  "requests": [
   {
    "features": [
@@ -21,11 +28,9 @@ request_body = {
  ]
 }.to_json
 
-uri = URI.parse(API_URL)
-https = Net::HTTP.new(uri.host, uri.port)
-https.use_ssl = true
-request = Net::HTTP::Post.new(uri.request_uri)
-request["Content-Type"] = "application/json"
-response = https.request(request, request_body)
-
+https_session = Net::HTTP.new(uri.host, uri.port)
+https_session.use_ssl = true
+response = https_session.start do |session|
+  session.request(request)
+end
 puts response.body

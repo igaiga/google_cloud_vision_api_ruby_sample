@@ -1,14 +1,23 @@
 require 'net/https'
-require 'base64'
 require 'json'
+require 'base64'
 
+# https://console.cloud.google.com/apis/credentials
 API_KEY = 'xxx'
-API_URL = "https://vision.googleapis.com/v1/images:annotate?key=#{API_KEY}"
+
+# https://vision.googleapis.com/v1/images:annotate?key=#{API_KEY}
+API_URL = "https://vision.googleapis.com/v1/images:annotate"
+uri = URI.parse(API_URL)
+uri.query = "key=#{API_KEY}"
+
 IMAGE_FILE = './tokikake10.jpg'
+base64_image = File.open(IMAGE_FILE, 'rb') do |f|
+  Base64.strict_encode64(f.read)
+end
 
-base64_image = Base64.strict_encode64(File.new(IMAGE_FILE, 'rb').read)
-
-request_body = {
+request = Net::HTTP::Post.new(uri.request_uri)
+request.content_type = "application/json"
+request.body = {
   requests: [{
     image: {
       content: base64_image
@@ -22,11 +31,9 @@ request_body = {
   }]
 }.to_json
 
-uri = URI.parse(API_URL)
-https = Net::HTTP.new(uri.host, uri.port)
-https.use_ssl = true
-request = Net::HTTP::Post.new(uri.request_uri)
-request["Content-Type"] = "application/json"
-response = https.request(request, request_body)
-
+https_session = Net::HTTP.new(uri.host, uri.port)
+https_session.use_ssl = true
+response = https_session.start do |session|
+  session.request(request)
+end
 puts response.body
